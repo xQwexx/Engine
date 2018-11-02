@@ -12,6 +12,37 @@ constexpr double CIRCLE_THIRD_1 = 0;
 constexpr double CIRCLE_THIRD_2 = CIRCLE_THIRD;
 constexpr double CIRCLE_THIRD_3 = CIRCLE_THIRD * 2;
 
+static const char *vertShaderText =
+"#version 450\n"
+"#extension GL_ARB_separate_shader_objects : enable\n"
+"out gl_PerVertex{\n"
+"	vec4 gl_Position;\n"
+"};\n"
+"layout(location = 0) out vec3 fragColor;\n"
+"vec2 positions[3] = vec2[](\n"
+"	vec2(0.0, -0.5),\n"
+"	vec2(0.5, 0.5),\n"
+"	vec2(-0.5, 0.5)\n"
+"	);\n"
+"vec3 colors[3] = vec3[](\n"
+"	vec3(1.0, 0.0, 0.0),\n"
+"	vec3(0.0, 1.0, 0.0),\n"
+"	vec3(0.0, 0.0, 1.0)\n"
+"	);\n"
+"void main() {\n"
+"	gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);\n"
+"	fragColor = colors[gl_VertexIndex];\n"
+"}\n";
+
+static const char *fragShaderText =
+"#version 400\n"
+"#extension GL_ARB_separate_shader_objects : enable\n"
+"layout (location = 0) in vec3 fragColor;\n"
+"layout (location = 0) out vec4 outColor;\n"
+"void main() {\n"
+"   outColor = vec4(fragColor, 1.0);\n"
+"}\n";
+
 int main()
 {
 	Renderer r;

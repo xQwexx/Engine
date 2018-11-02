@@ -59,7 +59,7 @@ private:
 	uint32_t							_surface_size_x = 512;
 	uint32_t							_surface_size_y = 512;
 	std::string							_window_name;
-	uint32_t							_swapchain_image_count = 2;
+	uint32_t							_swapchain_image_count = 3;
 	uint32_t							_active_swapchain_image_id = UINT32_MAX;
 
 	VkFence								_swapchain_image_available = VK_NULL_HANDLE;
@@ -81,7 +81,7 @@ private:
 	bool								_window_should_run = true;
 
 #if USE_FRAMEWORK_GLFW
-	//GLFWwindow						*	_glfw_window = nullptr;
+	GLFWwindow						*	_glfw_window = nullptr;
 #elif VK_USE_PLATFORM_WIN32_KHR
 	HINSTANCE							_win32_instance = NULL;
 	HWND								_win32_window = NULL;

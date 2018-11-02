@@ -51,7 +51,6 @@ private:
 
 	std::vector<const char*>				_instance_layers;
 	std::vector<const char*>				_instance_extensions;
-	//	std::vector<const char*>				_device_layers;					// depricated
 	std::vector<const char*>				_device_extensions;
 
 	VkDebugReportCallbackEXT				_debug_report = VK_NULL_HANDLE;

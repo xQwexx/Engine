@@ -65,6 +65,13 @@ void ErrorCheck(VkResult result)
 	}
 }
 
+#else
+
+void ErrorCheck(VkResult result) {};
+
+#endif // BUILD_ENABLE_VULKAN_RUNTIME_DEBUG
+
+
 uint32_t FindMemoryTypeIndex(const VkPhysicalDeviceMemoryProperties * gpu_memory_properties, const VkMemoryRequirements * memory_requirements, const VkMemoryPropertyFlags required_properties)
 {
 	for (uint32_t i = 0; i < gpu_memory_properties->memoryTypeCount; ++i) {
@@ -77,9 +84,3 @@ uint32_t FindMemoryTypeIndex(const VkPhysicalDeviceMemoryProperties * gpu_memory
 	assert(0 && "Couldn't find proper memory type.");
 	return UINT32_MAX;
 }
-
-#else
-
-void ErrorCheck(VkResult result) {};
-
-#endif // BUILD_ENABLE_VULKAN_RUNTIME_DEBUG

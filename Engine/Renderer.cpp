@@ -83,8 +83,8 @@ const VkPhysicalDeviceMemoryProperties & Renderer::GetVulkanPhysicalDeviceMemory
 void Renderer::_SetupLayersAndExtensions()
 {
 	_instance_extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-	AddRequiredPlatformInstanceExtensions(&_instance_extensions);
-
+	AddRequiredPlatformInstanceExtensions(&_instance_extensions); 
+	//_device_extensions.push_back(VK_NVX_raytracing);
 	_device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 }
 
@@ -92,7 +92,7 @@ void Renderer::_InitInstance()
 {
 	VkApplicationInfo application_info{};
 	application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	application_info.apiVersion = VK_MAKE_VERSION(1, 0, 2);			// 1.0.2 should work on all vulkan enabled drivers.
+	application_info.apiVersion = VK_MAKE_VERSION(1, 1, 85);			// 1.0.2 should work on all vulkan enabled drivers.
 	application_info.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
 	application_info.pApplicationName = "Vulkan API Tutorial Series";
 
@@ -155,8 +155,6 @@ void Renderer::_InitDevice()
 	device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	device_create_info.queueCreateInfoCount = 1;
 	device_create_info.pQueueCreateInfos = &device_queue_create_info;
-	//	device_create_info.enabledLayerCount		= _device_layers.size();			// depricated
-	//	device_create_info.ppEnabledLayerNames		= _device_layers.data();			// depricated
 	device_create_info.enabledExtensionCount = _device_extensions.size();
 	device_create_info.ppEnabledExtensionNames = _device_extensions.data();
 
@@ -239,16 +237,6 @@ void Renderer::_SetupDebug()
 	*/
 	_instance_extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
-	//	_device_layers.push_back( "VK_LAYER_LUNARG_standard_validation" );			// depricated
-	/*
-	//	_device_layers.push_back( "VK_LAYER_LUNARG_threading" );
-	_device_layers.push_back( "VK_LAYER_GOOGLE_threading" );
-	_device_layers.push_back( "VK_LAYER_LUNARG_draw_state" );
-	_device_layers.push_back( "VK_LAYER_LUNARG_image" );
-	_device_layers.push_back( "VK_LAYER_LUNARG_mem_tracker" );
-	_device_layers.push_back( "VK_LAYER_LUNARG_object_tracker" );
-	_device_layers.push_back( "VK_LAYER_LUNARG_param_checker" );
-	*/
 }
 
 PFN_vkCreateDebugReportCallbackEXT		fvkCreateDebugReportCallbackEXT = nullptr;
