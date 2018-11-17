@@ -1,9 +1,13 @@
 #include <array>
 #include <chrono>
 #include <iostream>
+#include <cstdlib>
+#include <fstream>
 
 #include "Renderer.h"
 #include "Window.h"
+#include "CommandBuffer.h"
+
 
 constexpr double PI = 3.14159265358979323846;
 constexpr double CIRCLE_RAD = PI * 2;
@@ -12,70 +16,81 @@ constexpr double CIRCLE_THIRD_1 = 0;
 constexpr double CIRCLE_THIRD_2 = CIRCLE_THIRD;
 constexpr double CIRCLE_THIRD_3 = CIRCLE_THIRD * 2;
 
-static const char *vertShaderText =
-"#version 450\n"
-"#extension GL_ARB_separate_shader_objects : enable\n"
-"out gl_PerVertex{\n"
-"	vec4 gl_Position;\n"
-"};\n"
-"layout(location = 0) out vec3 fragColor;\n"
-"vec2 positions[3] = vec2[](\n"
-"	vec2(0.0, -0.5),\n"
-"	vec2(0.5, 0.5),\n"
-"	vec2(-0.5, 0.5)\n"
-"	);\n"
-"vec3 colors[3] = vec3[](\n"
-"	vec3(1.0, 0.0, 0.0),\n"
-"	vec3(0.0, 1.0, 0.0),\n"
-"	vec3(0.0, 0.0, 1.0)\n"
-"	);\n"
-"void main() {\n"
-"	gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);\n"
-"	fragColor = colors[gl_VertexIndex];\n"
-"}\n";
 
-static const char *fragShaderText =
-"#version 400\n"
-"#extension GL_ARB_separate_shader_objects : enable\n"
-"layout (location = 0) in vec3 fragColor;\n"
-"layout (location = 0) out vec4 outColor;\n"
-"void main() {\n"
-"   outColor = vec4(fragColor, 1.0);\n"
-"}\n";
+static std::vector<char> readFile(const std::string& filename) {
+	std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+	if (!file.is_open()) {
+		std::cout << ("failed to open file!");
+	}
+
+	size_t fileSize = (size_t)file.tellg();
+	std::vector<char> buffer(fileSize);
+
+	file.seekg(0);
+	file.read(buffer.data(), fileSize);
+
+	file.close();
+
+	return buffer;
+}
+VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code) {
+	VkShaderModuleCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.codeSize = code.size();
+	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+	VkShaderModule shaderModule;
+	if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create shader module!");
+	}
+
+	return shaderModule;
+}
+/*
+void createGraphicsPipeline() {
+	auto vertShaderCode = readFile("shaders/vert.spv");
+	auto fragShaderCode = readFile("shaders/frag.spv");
+
+	VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+	VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+	VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
+	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+	vertShaderStageInfo.module = vertShaderModule;
+	vertShaderStageInfo.pName = "main";
+
+	VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
+	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fragShaderStageInfo.module = fragShaderModule;
+	fragShaderStageInfo.pName = "main";
+
+	VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+
+	vkDestroyShaderModule(_renderer->GetVulkanDevice(), fragShaderModule, nullptr);
+	vkDestroyShaderModule(_renderer->GetVulkanDevice(), vertShaderModule, nullptr);
+}*/
+
+
 
 int main()
 {
-	Renderer r;
 
-	auto w = r.OpenWindow(800, 600, "Vulkan API Tutorial 12");
 
-	VkCommandPool command_pool = VK_NULL_HANDLE;
-	VkCommandPoolCreateInfo pool_create_info{};
-	pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	pool_create_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	pool_create_info.queueFamilyIndex = r.GetVulkanGraphicsQueueFamilyIndex();
-	vkCreateCommandPool(r.GetVulkanDevice(), &pool_create_info, nullptr, &command_pool);
+	auto w = Window(800, 600, "Vulkan API Tutorial 12");
 
-	VkCommandBuffer command_buffer = VK_NULL_HANDLE;
-	VkCommandBufferAllocateInfo	command_buffer_allocate_info{};
-	command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	command_buffer_allocate_info.commandPool = command_pool;
-	command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	command_buffer_allocate_info.commandBufferCount = 1;
-	vkAllocateCommandBuffers(r.GetVulkanDevice(), &command_buffer_allocate_info, &command_buffer);
+	//auto wd = Window(800, 600, "Vulkan API Tutorial 12");
 
-	VkSemaphore render_complete_semaphore = VK_NULL_HANDLE;
-	VkSemaphoreCreateInfo semaphore_create_info{};
-	semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	vkCreateSemaphore(r.GetVulkanDevice(), &semaphore_create_info, nullptr, &render_complete_semaphore);
-
+	CommandBuffer cmdBuff(&w);
 	float color_rotator = 0.0f;
 	auto timer = std::chrono::steady_clock();
 	auto last_time = timer.now();
 	uint64_t frame_counter = 0;
 	uint64_t fps = 0;
 
-	while (r.Run()) {
+	while (w.Update()) {
 		// CPU logic calculations
 
 		++frame_counter;
@@ -86,65 +101,20 @@ int main()
 			std::cout << "FPS: " << fps << std::endl;
 		}
 
-		// Begin render
-		w->BeginRender();
-		// Record command buffer
-		VkCommandBufferBeginInfo command_buffer_begin_info{};
-		command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		
+		
+		cmdBuff.drawFrame();
+		
+	
 
-		vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info);
-
-		VkRect2D render_area{};
-		render_area.offset.x = 0;
-		render_area.offset.y = 0;
-		render_area.extent = w->GetVulkanSurfaceSize();
-
-		color_rotator += 0.001;
-
-		std::array<VkClearValue, 2> clear_values{};
-		clear_values[0].depthStencil.depth = 0.0f;
-		clear_values[0].depthStencil.stencil = 0;
-		clear_values[1].color.float32[0] = std::sin(color_rotator + CIRCLE_THIRD_1) * 0.5 + 0.5;
-		clear_values[1].color.float32[1] = std::sin(color_rotator + CIRCLE_THIRD_2) * 0.5 + 0.5;
-		clear_values[1].color.float32[2] = std::sin(color_rotator + CIRCLE_THIRD_3) * 0.5 + 0.5;
-		clear_values[1].color.float32[3] = 1.0f;
-
-		VkRenderPassBeginInfo render_pass_begin_info{};
-		render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		render_pass_begin_info.renderPass = w->GetVulkanRenderPass();
-		render_pass_begin_info.framebuffer = w->GetVulkanActiveFramebuffer();
-		render_pass_begin_info.renderArea = render_area;
-		render_pass_begin_info.clearValueCount = clear_values.size();
-		render_pass_begin_info.pClearValues = clear_values.data();
-
-		vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-		vkCmdEndRenderPass(command_buffer);
-
-		vkEndCommandBuffer(command_buffer);
-
-		// Submit command buffer
-		VkSubmitInfo submit_info{};
-		submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submit_info.waitSemaphoreCount = 0;
-		submit_info.pWaitSemaphores = nullptr;
-		submit_info.pWaitDstStageMask = nullptr;
-		submit_info.commandBufferCount = 1;
-		submit_info.pCommandBuffers = &command_buffer;
-		submit_info.signalSemaphoreCount = 1;
-		submit_info.pSignalSemaphores = &render_complete_semaphore;
-
-		vkQueueSubmit(r.GetVulkanQueue(), 1, &submit_info, VK_NULL_HANDLE);
-
+		
+		
 		// End render
-		w->EndRender({ render_complete_semaphore });
+		
 	}
 
-	vkQueueWaitIdle(r.GetVulkanQueue());
-
-	vkDestroySemaphore(r.GetVulkanDevice(), render_complete_semaphore, nullptr);
-	vkDestroyCommandPool(r.GetVulkanDevice(), command_pool, nullptr);
-
+	
 	return 0;
 }
+/*
+*/

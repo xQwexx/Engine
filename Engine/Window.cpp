@@ -2,21 +2,24 @@
 #include "Renderer.h"
 #include "Shared.h"
 
+#include <fstream>
 #include <assert.h>
 #include <array>
 
-Window::Window(Renderer * renderer, uint32_t size_x, uint32_t size_y, std::string name)
+Window::Window(uint32_t size_x, uint32_t size_y, std::string name)
 {
-	_renderer = renderer;
+	_renderer = new Renderer();
 	_surface_size_x = size_x;
 	_surface_size_y = size_y;
 	_window_name = name;
-
+	InitPlatform();
 	_InitOSWindow();
+	_InitOSSurface();
+	_renderer->InitDevice(_surface);
 	_InitSurface();
 	_InitSwapchain();
 	_InitSwapchainImages();
-	_InitDepthStencilImage();
+	//_InitDepthStencilImage();
 	_InitRenderPass();
 	_InitFramebuffers();
 	_InitSynchronizations();
@@ -33,6 +36,8 @@ Window::~Window()
 	_DeInitSwapchain();
 	_DeInitSurface();
 	_DeInitOSWindow();
+	DeInitPlatform();
+
 }
 
 
@@ -56,6 +61,7 @@ void Window::BeginRender()
 		VK_NULL_HANDLE,
 		_swapchain_image_available,
 		&_active_swapchain_image_id));
+	std::cout << _active_swapchain_image_id << std::endl;
 	ErrorCheck(vkWaitForFences(_renderer->GetVulkanDevice(), 1, &_swapchain_image_available, VK_TRUE, UINT64_MAX));
 	ErrorCheck(vkResetFences(_renderer->GetVulkanDevice(), 1, &_swapchain_image_available));
 	ErrorCheck(vkQueueWaitIdle(_renderer->GetVulkanQueue()));
@@ -83,9 +89,9 @@ VkRenderPass Window::GetVulkanRenderPass()
 	return _render_pass;
 }
 
-VkFramebuffer Window::GetVulkanActiveFramebuffer()
+std::vector<VkFramebuffer> Window::GetVulkanActiveFramebuffer()
 {
-	return _framebuffers[_active_swapchain_image_id];
+	return _framebuffers;// [_active_swapchain_image_id];
 }
 
 VkExtent2D Window::GetVulkanSurfaceSize()
@@ -93,18 +99,16 @@ VkExtent2D Window::GetVulkanSurfaceSize()
 	return { _surface_size_x, _surface_size_y };
 }
 
+const Renderer & Window::GetGPU() const
+{
+	return *_renderer;
+}
+
 void Window::_InitSurface()
 {
-	_InitOSSurface();
+	
 
 	auto gpu = _renderer->GetVulkanPhysicalDevice();
-
-	VkBool32 WSI_supported = false;
-	ErrorCheck(vkGetPhysicalDeviceSurfaceSupportKHR(gpu, _renderer->GetVulkanGraphicsQueueFamilyIndex(), _surface, &WSI_supported));
-	if (!WSI_supported) {
-		assert(0 && "WSI not supported");
-		std::exit(-1);
-	}
 
 	ErrorCheck(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu, _surface, &_surface_capabilities));
 	if (_surface_capabilities.currentExtent.width < UINT32_MAX) {
@@ -219,7 +223,7 @@ void Window::_DeInitSwapchainImages()
 
 void Window::_InitDepthStencilImage()
 {
-	{
+	/*{
 		std::vector<VkFormat> try_formats{
 			VK_FORMAT_D32_SFLOAT_S8_UINT,
 			VK_FORMAT_D24_UNORM_S8_UINT,
@@ -295,7 +299,7 @@ void Window::_InitDepthStencilImage()
 	image_view_create_info.subresourceRange.baseArrayLayer = 0;
 	image_view_create_info.subresourceRange.layerCount = 1;
 
-	ErrorCheck(vkCreateImageView(_renderer->GetVulkanDevice(), &image_view_create_info, nullptr, &_depth_stencil_image_view));
+	ErrorCheck(vkCreateImageView(_renderer->GetVulkanDevice(), &image_view_create_info, nullptr, &_depth_stencil_image_view));*/
 }
 
 void Window::_DeInitDepthStencilImage()
@@ -307,7 +311,7 @@ void Window::_DeInitDepthStencilImage()
 
 void Window::_InitRenderPass()
 {
-	std::array<VkAttachmentDescription, 2> attachments{};
+	/*std::array<VkAttachmentDescription, 2> attachments{};
 	attachments[0].flags = 0;
 	attachments[0].format = _depth_stencil_format;
 	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -324,30 +328,52 @@ void Window::_InitRenderPass()
 	attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments[1].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	attachments[1].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;*/
 
+	VkAttachmentDescription attachments = {};
+	attachments.format = _surface_format.format;
+	attachments.samples = VK_SAMPLE_COUNT_1_BIT;
+	attachments.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachments.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachments.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	attachments.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachments.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachments.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-	VkAttachmentReference sub_pass_0_depth_stencil_attachment{};
+	/*VkAttachmentReference sub_pass_0_depth_stencil_attachment{};
 	sub_pass_0_depth_stencil_attachment.attachment = 0;
-	sub_pass_0_depth_stencil_attachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	sub_pass_0_depth_stencil_attachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;*/
 
 	std::array<VkAttachmentReference, 1> sub_pass_0_color_attachments{};
-	sub_pass_0_color_attachments[0].attachment = 1;
+	sub_pass_0_color_attachments[0].attachment = 0;
 	sub_pass_0_color_attachments[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDependency dependency = {};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 
 	std::array<VkSubpassDescription, 1> sub_passes{};
 	sub_passes[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	sub_passes[0].colorAttachmentCount = sub_pass_0_color_attachments.size();
 	sub_passes[0].pColorAttachments = sub_pass_0_color_attachments.data();		// layout(location=0) out vec4 FinalColor;
-	sub_passes[0].pDepthStencilAttachment = &sub_pass_0_depth_stencil_attachment;
+	//sub_passes[0].pDepthStencilAttachment = &sub_pass_0_depth_stencil_attachment;
+
 
 
 	VkRenderPassCreateInfo render_pass_create_info{};
 	render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	render_pass_create_info.attachmentCount = attachments.size();
-	render_pass_create_info.pAttachments = attachments.data();
+	render_pass_create_info.attachmentCount = 1;
+	render_pass_create_info.pAttachments = &attachments;
 	render_pass_create_info.subpassCount = sub_passes.size();
 	render_pass_create_info.pSubpasses = sub_passes.data();
+	render_pass_create_info.dependencyCount = 1;
+	render_pass_create_info.pDependencies = &dependency;
+
 
 	ErrorCheck(vkCreateRenderPass(_renderer->GetVulkanDevice(), &render_pass_create_info, nullptr, &_render_pass));
 }
@@ -361,15 +387,18 @@ void Window::_InitFramebuffers()
 {
 	_framebuffers.resize(_swapchain_image_count);
 	for (uint32_t i = 0; i < _swapchain_image_count; ++i) {
-		std::array<VkImageView, 2> attachments{};
+		VkImageView attachments[] = {
+			_swapchain_image_views[i]
+		};
+		/*std::array<VkImageView, 2> attachments{};
 		attachments[0] = _depth_stencil_image_view;
-		attachments[1] = _swapchain_image_views[i];
+		attachments[1] = _swapchain_image_views[i];*/
 
 		VkFramebufferCreateInfo framebuffer_create_info{};
 		framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebuffer_create_info.renderPass = _render_pass;
-		framebuffer_create_info.attachmentCount = attachments.size();
-		framebuffer_create_info.pAttachments = attachments.data();
+		framebuffer_create_info.attachmentCount = 1;
+		framebuffer_create_info.pAttachments = attachments;
 		framebuffer_create_info.width = _surface_size_x;
 		framebuffer_create_info.height = _surface_size_y;
 		framebuffer_create_info.layers = 1;

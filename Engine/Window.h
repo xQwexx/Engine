@@ -10,7 +10,7 @@ class Renderer;
 class Window
 {
 public:
-	Window(Renderer * renderer, uint32_t size_x, uint32_t size_y, std::string name);
+	Window(uint32_t size_x, uint32_t size_y, std::string name);
 	~Window();
 
 	void Close();
@@ -20,8 +20,9 @@ public:
 	void								EndRender(std::vector<VkSemaphore> wait_semaphores);
 
 	VkRenderPass						GetVulkanRenderPass();
-	VkFramebuffer						GetVulkanActiveFramebuffer();
+	std::vector<VkFramebuffer>			GetVulkanActiveFramebuffer();
 	VkExtent2D							GetVulkanSurfaceSize();
+	const Renderer&						GetGPU() const;
 
 private:
 	void								_InitOSWindow();
@@ -59,7 +60,7 @@ private:
 	uint32_t							_surface_size_x = 512;
 	uint32_t							_surface_size_y = 512;
 	std::string							_window_name;
-	uint32_t							_swapchain_image_count = 3;
+	uint32_t							_swapchain_image_count = 1;
 	uint32_t							_active_swapchain_image_id = UINT32_MAX;
 
 	VkFence								_swapchain_image_available = VK_NULL_HANDLE;
